@@ -8,6 +8,7 @@ let items = ["Buy food", "Cook food", "Eat food"];
 
 app.set("view engine", "ejs");
 
+app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const port = 3000;
