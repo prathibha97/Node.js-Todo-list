@@ -34,16 +34,21 @@ const item3 = new Item({
 
 const defaultItem = [item1, item2, item3];
 
-Item.insertMany(defaultItem, function (err) {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log("Added items to the list!");
-  }
-});
-
 app.get("/", (req, res) => {
-  res.render("list", { listTitle: "Today", newListItems: items });
+  Item.find({}, function (err, item) {
+    if (item.length === 0) {
+      Item.insertMany(defaultItem, function (err) {
+        if (err) {
+          console.error(err);
+        } else {
+          console.log("Added items to the list!");
+        }
+      });
+      res.redirect("/");
+    } else {
+      res.render("list", { listTitle: "Today", newListItems: item });
+    }
+  });
 });
 
 app.post("/", function (req, res) {
