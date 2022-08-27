@@ -34,6 +34,13 @@ const item3 = new Item({
 
 const defaultItem = [item1, item2, item3];
 
+const listSchema = {
+  name: String,
+  items: [itemSchema],
+};
+
+const List = mongoose.model("List", listSchema);
+
 app.get("/", (req, res) => {
   Item.find({}, function (err, item) {
     if (item.length === 0) {
@@ -51,20 +58,76 @@ app.get("/", (req, res) => {
   });
 });
 
-app.post("/", function (req, res) {
+app.get("/:customListName", function (req, res) {
+  const customListName = req.params.customListName;
 
+  List.findOne({ name: customListName }, function (err, foundList) {
+    if (!err) {
+      // create a new list
+      if (!foundList) {
+        const list = new List({
+          name: customListName,
+          items: defaultItem,
+        });
+        list.save();
+        res.redirect(`/${customListName}`);
+      }
+      // show an existing list
+      else {
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items,
+        });
+      }
+    }
+  });
+});
+
+app.post("/", function (req, res) {
   const itemName = req.body.newItem;
+  const listName = req.body.list;
 
   const item = new Item({
     name: itemName,
   });
 
-  item.save();
-  res.redirect("/");
+  if (listName === "Today") {
+    item.save();
+    res.redirect("/");
+  } else {
+    List.findOne({ name: listName }, function (err, foundList) {
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect(`/${listName}`);
+    });
+  }
 });
 
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "work  List", newListItems: workItems });
+app.post("/delete", function (req, res) {
+  const checkedItemId = req.body.checkbox;
+  const listName = req.body.listName;
+
+  if (listName == "Today") {
+    Item.findByIdAndRemove(checkedItemId, function (err) {
+      if (err) {
+        console.log(err);
+      } else {
+        res.redirect("/");
+      }
+    });
+  } else {
+    List.findOneAndUpdate(
+      { name: listName },
+      { $pull: { items: { _id: checkedItemId } } },
+      function (err, foundList) {
+        if (err) {
+          console.log(err);
+        } else {
+          res.redirect(`/${listName}`);
+        }
+      }
+    );
+  }
 });
 
 app.listen(port, function () {
